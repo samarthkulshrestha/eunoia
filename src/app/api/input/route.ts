@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseInput } from "@/lib/ai";
 
+async function fetchYouTubeTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      redirect: "follow",
+    });
+    const html = await res.text();
+    const match = html.match(/<title>(.*?)<\/title>/i);
+    if (match) {
+      return match[1].replace(" - YouTube", "").trim();
+    }
+  } catch {}
+  return null;
+}
+
+async function enrichContent(content: string, type: string): Promise<string> {
+  if (type === "youtube" && content.match(/youtube\.com|youtu\.be/i)) {
+    const title = await fetchYouTubeTitle(content);
+    if (title) {
+      return `YouTube video: "${title}" (${content})`;
+    }
+  }
+  return content;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { content, type } = await req.json();
@@ -11,8 +36,11 @@ export async function POST(req: NextRequest) {
       data: { content, type },
     });
 
+    // Enrich content with metadata (e.g. fetch YouTube title)
+    const enrichedContent = await enrichContent(content, type);
+
     // Parse with AI
-    const parsed = await parseInput(content, type);
+    const parsed = await parseInput(enrichedContent, type);
 
     // Create interests from parsed result
     const interests = [];
