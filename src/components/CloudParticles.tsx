@@ -12,6 +12,39 @@ interface CloudParticlesProps {
   opacity?: number;
 }
 
+// Create a soft radial gradient texture for cloud sprites
+function createCloudTexture(): THREE.Texture {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  const gradient = ctx.createRadialGradient(
+    size / 2, size / 2, 0,
+    size / 2, size / 2, size / 2
+  );
+  gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.3, "rgba(255, 255, 255, 0.6)");
+  gradient.addColorStop(0.6, "rgba(255, 255, 255, 0.15)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+let sharedTexture: THREE.Texture | null = null;
+function getCloudTexture() {
+  if (!sharedTexture) {
+    sharedTexture = createCloudTexture();
+  }
+  return sharedTexture;
+}
+
 export function CloudParticles({
   position,
   color,
@@ -21,15 +54,16 @@ export function CloudParticles({
 }: CloudParticlesProps) {
   const meshRef = useRef<THREE.Points>(null);
   const timeRef = useRef(0);
+  const initialPositions = useRef<Float32Array | null>(null);
 
-  const { positions, sizes, opacities } = useMemo(() => {
+  const { positions, sizes } = useMemo(() => {
     const positions = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
-    const opacities = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
-      // Gaussian-like distribution: dense core, sparse periphery
-      const r = radius * Math.pow(Math.random(), 0.5);
+      // Gaussian-ish distribution: dense core, sparse periphery
+      const u = Math.random();
+      const r = radius * Math.pow(u, 0.4);
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
 
@@ -37,32 +71,37 @@ export function CloudParticles({
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
 
-      // Larger particles at core, smaller at edges
+      // Vary sizes — large soft blobs at core, smaller at edges
       const distFromCenter = r / radius;
-      sizes[i] = (1 - distFromCenter * 0.7) * 0.15;
-      opacities[i] = (1 - distFromCenter) * opacity;
+      const baseSize = 0.6 + Math.random() * 0.8;
+      sizes[i] = baseSize * (1 - distFromCenter * 0.5);
     }
 
-    return { positions, sizes, opacities };
-  }, [count, radius, opacity]);
+    initialPositions.current = new Float32Array(positions);
+    return { positions, sizes };
+  }, [count, radius]);
 
   useFrame((_, delta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || !initialPositions.current) return;
     timeRef.current += delta;
+    const t = timeRef.current;
 
-    // Subtle ambient drift
+    // Gentle organic drift around initial positions
     const posAttr = meshRef.current.geometry.attributes.position;
     const arr = posAttr.array as Float32Array;
+    const init = initialPositions.current;
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
-      arr[idx] += Math.sin(timeRef.current + i * 0.1) * 0.001;
-      arr[idx + 1] += Math.cos(timeRef.current + i * 0.15) * 0.001;
-      arr[idx + 2] += Math.sin(timeRef.current * 0.5 + i * 0.2) * 0.001;
+      const speed = 0.3 + (i % 7) * 0.05;
+      arr[idx] = init[idx] + Math.sin(t * speed + i * 0.7) * 0.08;
+      arr[idx + 1] = init[idx + 1] + Math.cos(t * speed * 0.8 + i * 0.5) * 0.08;
+      arr[idx + 2] = init[idx + 2] + Math.sin(t * speed * 0.6 + i * 0.9) * 0.06;
     }
     posAttr.needsUpdate = true;
   });
 
   const threeColor = useMemo(() => new THREE.Color(color), [color]);
+  const texture = useMemo(() => getCloudTexture(), []);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
@@ -75,9 +114,10 @@ export function CloudParticles({
     <points ref={meshRef} position={position} geometry={geometry}>
       <pointsMaterial
         color={threeColor}
-        size={0.1}
+        size={0.8}
+        map={texture}
         transparent
-        opacity={opacity}
+        opacity={opacity * 0.35}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
