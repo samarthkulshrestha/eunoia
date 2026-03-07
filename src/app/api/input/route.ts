@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     } else {
       // Assign a random hue-based color
       const hue = Math.floor(Math.random() * 360);
-      const color = `hsl(${hue}, 70%, 60%)`;
+      const color = `hsl(${hue}, 90%, 75%)`;
 
       const interest = await db.interest.create({
         data: {
