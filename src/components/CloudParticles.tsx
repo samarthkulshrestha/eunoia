@@ -28,8 +28,8 @@ function getParticleTexture(): THREE.Texture {
     size / 2, size / 2, size / 2
   );
   gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-  gradient.addColorStop(0.4, "rgba(255, 255, 255, 0.6)");
-  gradient.addColorStop(0.7, "rgba(255, 255, 255, 0.15)");
+  gradient.addColorStop(0.3, "rgba(255, 255, 255, 0.7)");
+  gradient.addColorStop(0.6, "rgba(255, 255, 255, 0.2)");
   gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
 
   ctx.fillStyle = gradient;
@@ -39,6 +39,31 @@ function getParticleTexture(): THREE.Texture {
   sharedTexture.needsUpdate = true;
   return sharedTexture;
 }
+
+// Custom shader: per-particle size + opacity based on distance from center
+const vertexShader = /* glsl */ `
+  attribute float aSize;
+  attribute float aOpacity;
+  varying float vOpacity;
+
+  void main() {
+    vOpacity = aOpacity;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = aSize * (200.0 / -mvPosition.z);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const fragmentShader = /* glsl */ `
+  uniform vec3 uColor;
+  uniform sampler2D uMap;
+  varying float vOpacity;
+
+  void main() {
+    vec4 texColor = texture2D(uMap, gl_PointCoord);
+    gl_FragColor = vec4(uColor, texColor.a * vOpacity);
+  }
+`;
 
 export function CloudParticles({
   position,
@@ -51,22 +76,31 @@ export function CloudParticles({
   const timeRef = useRef(0);
   const initialPositions = useRef<Float32Array | null>(null);
 
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
+  const { positions, sizes, opacities } = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const opacities = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
-      const r = radius * Math.pow(Math.random(), 0.5);
+      // Distribute with more density at center
+      const r = radius * Math.pow(Math.random(), 0.45);
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
 
-      arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      arr[i * 3 + 2] = r * Math.cos(phi);
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+
+      const dist = r / radius; // 0 at center, 1 at edge
+
+      // Core particles: larger, brighter. Edge particles: smaller, fainter.
+      sizes[i] = (0.8 + Math.random() * 0.6) * (1.0 - dist * 0.6);
+      opacities[i] = opacity * (1.0 - dist * 0.7) * (0.5 + Math.random() * 0.5);
     }
 
-    initialPositions.current = new Float32Array(arr);
-    return arr;
-  }, [count, radius]);
+    initialPositions.current = new Float32Array(positions);
+    return { positions, sizes, opacities };
+  }, [count, radius, opacity]);
 
   useFrame((_, delta) => {
     if (!meshRef.current || !initialPositions.current) return;
@@ -92,22 +126,39 @@ export function CloudParticles({
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+    geo.setAttribute("aOpacity", new THREE.BufferAttribute(opacities, 1));
     return geo;
-  }, [positions]);
+  }, [positions, sizes, opacities]);
+
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uColor: { value: threeColor },
+        uMap: { value: texture },
+      },
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update color reactively
+  useMemo(() => {
+    material.uniforms.uColor.value.set(color);
+  }, [color, material]);
 
   return (
-    <points ref={meshRef} position={position} geometry={geometry} frustumCulled={false}>
-      <pointsMaterial
-        color={threeColor}
-        size={0.15}
-        map={texture}
-        transparent
-        opacity={opacity}
-        sizeAttenuation
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        depthTest={false}
-      />
-    </points>
+    <points
+      ref={meshRef}
+      position={position}
+      geometry={geometry}
+      material={material}
+      frustumCulled={false}
+    />
   );
 }
