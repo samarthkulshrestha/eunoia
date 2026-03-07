@@ -23,12 +23,16 @@ Return a JSON object:
   ]
 }
 
+IMPORTANT: You MUST always respond with ONLY the JSON object. No explanations, no caveats, no apologies. Just the JSON.
+
 Be thoughtful about granularity. "Machine Learning" is a domain. "Supervised Learning" is a sub-interest. Don't over-split — identify the core domains the input belongs to.
 
 If the input is a book, extract the KEY intellectual themes, not just "this is a book about X."
-If the input is a YouTube link or video title, infer the intellectual domain.
+If the input is a YouTube link or URL, you CANNOT access the video. Instead, infer interests from whatever context clues exist in the URL or title. If the user provides just a bare URL with no other context, make your best guess from the video ID, channel name, or any keywords visible in the URL. If you truly cannot infer anything, return a general interest like "Video Content" — but ALWAYS return valid JSON.
 If the input is music, consider the genre, cultural movement, artistic philosophy.
-If the input is raw text, identify the core arguments and fields.`;
+If the input is raw text, identify the core arguments and fields.
+
+Never explain that you can't access a URL. Never refuse. Always return the JSON object.`;
 
 export const KNOWLEDGE_TREE_PROMPT = `For the interest "{interest}", generate a deep, multidimensional knowledge tree.
 
