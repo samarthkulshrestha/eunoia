@@ -4,14 +4,41 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { useEffect } from "react";
 import { InterestCloud } from "./InterestCloud";
+import { BridgeZone } from "./BridgeZone";
 import { useStore } from "@/lib/store";
 
 function SceneContent() {
-  const { interests, fetchInterests } = useStore();
+  const {
+    interests,
+    fetchInterests,
+    bridgeMode,
+    bridgeSelections,
+    bridgeInterests,
+    bridgeResult,
+  } = useStore();
 
   useEffect(() => {
     fetchInterests();
   }, [fetchInterests]);
+
+  useEffect(() => {
+    if (bridgeMode && bridgeSelections[0] && bridgeSelections[1]) {
+      bridgeInterests(bridgeSelections[0], bridgeSelections[1]);
+    }
+  }, [bridgeMode, bridgeSelections, bridgeInterests]);
+
+  const rootInterests = interests.filter(
+    (i) => i.depth === 0 || i.source === "manual"
+  );
+
+  const interestA =
+    bridgeSelections[0]
+      ? interests.find((i) => i.id === bridgeSelections[0]) || null
+      : null;
+  const interestB =
+    bridgeSelections[1]
+      ? interests.find((i) => i.id === bridgeSelections[1]) || null
+      : null;
 
   return (
     <>
@@ -32,9 +59,12 @@ function SceneContent() {
         maxDistance={50}
         enablePan
       />
-      {interests.map((interest) => (
+      {rootInterests.map((interest) => (
         <InterestCloud key={interest.id} interest={interest} />
       ))}
+      {bridgeMode && interestA && interestB && bridgeResult && (
+        <BridgeZone interestA={interestA} interestB={interestB} />
+      )}
     </>
   );
 }
