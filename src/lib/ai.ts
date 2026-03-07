@@ -21,9 +21,19 @@ async function queryAI(systemPrompt: string, userPrompt: string) {
 
   // Extract JSON from response (handle markdown code blocks)
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
+  let jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
 
-  return JSON.parse(jsonStr);
+  // Fallback: find first { to last } if not valid JSON
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start !== -1 && end !== -1) {
+      return JSON.parse(text.slice(start, end + 1));
+    }
+    throw new Error(`Failed to parse AI response as JSON: ${text.slice(0, 200)}`);
+  }
 }
 
 export async function parseInput(input: string, inputType: string) {

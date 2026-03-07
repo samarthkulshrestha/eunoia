@@ -3,19 +3,20 @@ import { db } from "@/lib/db";
 import { parseInput } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
-  const { content, type } = await req.json();
+  try {
+    const { content, type } = await req.json();
 
-  // Save the raw input
-  const inputItem = await db.inputItem.create({
-    data: { content, type },
-  });
+    // Save the raw input
+    const inputItem = await db.inputItem.create({
+      data: { content, type },
+    });
 
-  // Parse with AI
-  const parsed = await parseInput(content, type);
+    // Parse with AI
+    const parsed = await parseInput(content, type);
 
-  // Create interests from parsed result
-  const interests = [];
-  for (const item of parsed.interests) {
+    // Create interests from parsed result
+    const interests = [];
+    for (const item of parsed.interests) {
     // Check if interest already exists
     const existing = await db.interest.findFirst({
       where: { name: { equals: item.name, mode: "insensitive" } },
@@ -79,5 +80,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ interests });
+    return NextResponse.json({ interests });
+  } catch (error) {
+    console.error("Error parsing input:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to parse input" },
+      { status: 500 }
+    );
+  }
 }

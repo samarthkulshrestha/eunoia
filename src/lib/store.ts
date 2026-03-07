@@ -79,14 +79,22 @@ export const useStore = create<EunoiaState>((set, get) => ({
 
   addInput: async (content, type) => {
     set({ loading: true, loadingMessage: "Parsing your input..." });
-    const res = await fetch("/api/input", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, type }),
-    });
-    const data = await res.json();
-    set({ loading: false });
-    await get().fetchInterests();
+    try {
+      const res = await fetch("/api/input", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, type }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Input parsing failed:", err);
+      }
+      set({ loading: false });
+      await get().fetchInterests();
+    } catch (error) {
+      console.error("Input parsing error:", error);
+      set({ loading: false });
+    }
   },
 
   exploreInterest: async (id) => {
