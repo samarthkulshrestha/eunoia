@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Interest {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  depth       Int      @default(0)    // 0 = root domain, 1+ = sub-interests
+  source      String   @default("manual") // manual, ai-generated
+  color       String?  // hex color for cloud
+  parentId    String?
+  parent      Interest?  @relation("InterestTree", fields: [parentId], references: [id])
+  children    Interest[] @relation("InterestTree")
+
+  // Knowledge tree dimensions (cached AI output)
+  foundations      Json?
+  taxonomy         Json?
+  thinkers         Json?
+  culturalImpact   Json?
+  adjacentSurprises Json?
+  controversies    Json?
+
+  resources  Resource[]
+  inputItems InputItem[]
+
+  // Graph edges
+  edgesFrom  Edge[] @relation("EdgeFrom")
+  edgesTo    Edge[] @relation("EdgeTo")
+
+  // Spatial positioning
+  posX       Float @default(0)
+  posY       Float @default(0)
+  posZ       Float @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Edge {
+  id       String @id @default(cuid())
+  fromId   String
+  toId     String
+  from     Interest @relation("EdgeFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to       Interest @relation("EdgeTo", fields: [toId], references: [id], onDelete: Cascade)
+  type     String   @default("related") // related, bridge
+  strength Float    @default(0.5)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId])
+}
+
+model Resource {
+  id         String   @id @default(cuid())
+  type       String   // book, paper, video, person, essay
+  title      String
+  author     String?
+  url        String?
+  why        String?  // why this is worth your time
+  detail     String?  // specific chapter/section rec
+  interestId String
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  dismissed  Boolean  @default(false)
+  upvoted    Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+}
+
+model InputItem {
+  id         String   @id @default(cuid())
+  type       String   // book, youtube, music, article, pdf, raw
+  content    String   // the raw input text/url
+  parsed     Boolean  @default(false)
+  interestId String?
+  interest   Interest? @relation(fields: [interestId], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime @default(now())
+}
