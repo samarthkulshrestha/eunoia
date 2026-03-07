@@ -63,9 +63,9 @@ export async function POST(req: NextRequest) {
           description: item.description,
           color,
           source: "manual",
-          posX: (Math.random() - 0.5) * 8,
-          posY: (Math.random() - 0.5) * 8,
-          posZ: (Math.random() - 0.5) * 8,
+          posX: (Math.random() - 0.5) * 12,
+          posY: (Math.random() - 0.5) * 12,
+          posZ: (Math.random() - 0.5) * 12,
         },
       });
       interests.push(interest);
