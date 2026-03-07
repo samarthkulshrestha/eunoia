@@ -2,6 +2,7 @@
 
 import { useStore } from "@/lib/store";
 import { InputPanel } from "./InputPanel";
+import { SidePanel } from "./SidePanel";
 
 export function UIOverlay() {
   const { bridgeMode, toggleBridgeMode, loading, loadingMessage } = useStore();
@@ -35,6 +36,9 @@ export function UIOverlay() {
           {loadingMessage}
         </div>
       )}
+
+      {/* Side panel */}
+      <SidePanel />
 
       {/* Input panel */}
       <InputPanel />
