@@ -2,6 +2,7 @@
 
 import { useStore } from "@/lib/store";
 import { InputPanel } from "./InputPanel";
+import { SearchBar } from "./SearchBar";
 import { SidePanel } from "./SidePanel";
 
 export function UIOverlay() {
@@ -15,6 +16,9 @@ export function UIOverlay() {
           eunoia
         </h1>
       </div>
+
+      {/* Search bar */}
+      <SearchBar />
 
       {/* Bridge mode toggle */}
       <div className="fixed top-6 right-6 z-50">
