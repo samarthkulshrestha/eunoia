@@ -99,10 +99,10 @@ export function CloudParticles({
     <points ref={meshRef} position={position} geometry={geometry}>
       <pointsMaterial
         color={threeColor}
-        size={0.12}
+        size={0.15}
         map={texture}
         transparent
-        opacity={opacity * 0.5}
+        opacity={opacity}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}

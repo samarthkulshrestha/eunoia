@@ -79,8 +79,8 @@ export function InterestCloud({ interest }: InterestCloudProps) {
   };
 
   const color = interest.color || "#6688ff";
-  const particleCount = interest.source === "ai-generated" ? 100 : 200;
-  const cloudOpacity = interest.source === "ai-generated" ? 0.4 : 0.8;
+  const particleCount = interest.source === "ai-generated" ? 400 : 800;
+  const cloudOpacity = interest.source === "ai-generated" ? 0.5 : 0.8;
 
   return (
     <group ref={groupRef} position={basePosition}>
