@@ -96,7 +96,7 @@ export function CloudParticles({
   }, [positions]);
 
   return (
-    <points ref={meshRef} position={position} geometry={geometry}>
+    <points ref={meshRef} position={position} geometry={geometry} frustumCulled={false}>
       <pointsMaterial
         color={threeColor}
         size={0.15}
@@ -106,6 +106,7 @@ export function CloudParticles({
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
+        depthTest={false}
       />
     </points>
   );
