@@ -64,22 +64,15 @@ export function CloudParticles({
 
   const threeColor = useMemo(() => new THREE.Color(color), [color]);
 
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    return geo;
+  }, [positions, sizes]);
+
   return (
-    <points ref={meshRef} position={position}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={count}
-          array={sizes}
-          itemSize={1}
-        />
-      </bufferGeometry>
+    <points ref={meshRef} position={position} geometry={geometry}>
       <pointsMaterial
         color={threeColor}
         size={0.1}
