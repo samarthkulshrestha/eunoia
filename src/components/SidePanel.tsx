@@ -33,7 +33,7 @@ export function SidePanel() {
   if (!sidePanelOpen || !selectedInterest) return null;
 
   return (
-    <div className="fixed top-0 right-0 h-screen w-[420px] z-40 bg-black/90 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
+    <div className="fixed top-0 right-0 h-screen w-[420px] z-[60] bg-black/90 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
       <div className="p-6">
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
