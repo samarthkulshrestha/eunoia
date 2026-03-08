@@ -5,6 +5,7 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import { useEffect } from "react";
 import { InterestCloud } from "./InterestCloud";
 import { BridgeZone } from "./BridgeZone";
+import { ConstellationLines } from "./ConstellationLines";
 import { useStore } from "@/lib/store";
 
 function SceneContent() {
@@ -62,6 +63,7 @@ function SceneContent() {
       {rootInterests.map((interest) => (
         <InterestCloud key={interest.id} interest={interest} />
       ))}
+      <ConstellationLines />
       {bridgeMode && interestA && interestB && bridgeResult && (
         <BridgeZone interestA={interestA} interestB={interestB} />
       )}

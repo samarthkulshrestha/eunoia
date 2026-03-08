@@ -21,6 +21,7 @@ export function InterestCloud({ interest }: InterestCloudProps) {
     bridgeSelections,
     bridgeResult,
     interests,
+    setHoveredInterestId,
   } = useStore();
 
   const isSelected =
@@ -92,7 +93,11 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         opacity={cloudOpacity}
       />
       {/* Clickable invisible sphere for interaction */}
-      <mesh onClick={handleClick}>
+      <mesh
+        onClick={handleClick}
+        onPointerEnter={() => setHoveredInterestId(interest.id)}
+        onPointerLeave={() => setHoveredInterestId(null)}
+      >
         <sphereGeometry args={[1.8, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
