@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { KnowledgeDimensionView } from "./KnowledgeDimension";
-import type { KnowledgeDimension } from "@/lib/types";
+import { KnowledgeDimension } from "@/lib/types";
+import { RadialDiagram } from "./RadialDiagram";
 
 const DIMENSIONS: { key: string; label: string }[] = [
   { key: "foundations", label: "Foundations" },
@@ -14,101 +15,155 @@ const DIMENSIONS: { key: string; label: string }[] = [
   { key: "controversies", label: "Controversies & Open Questions" },
 ];
 
+function getAccentColor(interest: any): string {
+  if (interest?.color) return interest.color;
+  // Fallback: deterministic HSL from id
+  let hash = 0;
+  const str = interest?.id || "default";
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 85%, 60%)`;
+}
+
+function toCoordinate(val: number): string {
+  const abs = Math.abs(val);
+  const sign = val >= 0 ? "+" : "-";
+  return `${sign}${abs.toFixed(2)}`;
+}
+
 export function SidePanel() {
-  const {
-    selectedInterest,
-    sidePanelOpen,
-    setSidePanelOpen,
-    knowledgeTree,
-    exploreInterest,
-    loading,
-  } = useStore();
+  const selectedInterest = useStore((s) => s.selectedInterest);
+  const sidePanelOpen = useStore((s) => s.sidePanelOpen);
+  const setSidePanelOpen = useStore((s) => s.setSidePanelOpen);
+  const knowledgeTree = useStore((s) => s.knowledgeTree);
+  const exploreInterest = useStore((s) => s.exploreInterest);
+  const loading = useStore((s) => s.loading);
 
   useEffect(() => {
     if (selectedInterest && !knowledgeTree) {
       exploreInterest(selectedInterest.id);
     }
-  }, [selectedInterest, knowledgeTree, exploreInterest]);
+  }, [selectedInterest]);
 
   if (!sidePanelOpen || !selectedInterest) return null;
 
+  const accent = getAccentColor(selectedInterest);
+  const resources = selectedInterest.resources || [];
+  const dimData = DIMENSIONS.map((d) => ({
+    ...d,
+    data: knowledgeTree?.[d.key] as KnowledgeDimension | null,
+  }));
+
+  const gridBg = `repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.03) 19px, rgba(255,255,255,0.03) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.03) 19px, rgba(255,255,255,0.03) 20px)`;
+
   return (
-    <div className="fixed top-0 right-0 h-screen w-[420px] z-[60] bg-black/90 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-lg text-white font-light tracking-wide">
-              {selectedInterest.name}
-            </h2>
-            {selectedInterest.description && (
-              <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                {selectedInterest.description}
-              </p>
-            )}
-          </div>
+    <div
+      className="fixed right-0 top-0 h-full z-[60] overflow-y-auto"
+      style={{
+        width: 420,
+        backgroundColor: "#0a0a0f",
+        borderLeft: `1px solid ${accent}`,
+        backgroundImage: gridBg,
+      }}
+    >
+      {/* Header */}
+      <div className="p-5">
+        {/* Close + Coordinates row */}
+        <div className="flex items-start justify-between mb-4">
           <button
             onClick={() => setSidePanelOpen(false)}
-            className="text-white/30 hover:text-white/60 transition-colors text-lg"
+            className="text-white/40 hover:text-white transition-colors font-mono text-xs border border-white/20 px-2 py-0.5"
           >
-            &times;
+            ESC
           </button>
+          <div className="font-mono text-xs text-white/30 text-right leading-relaxed">
+            <div>RA {toCoordinate(selectedInterest.posX)}</div>
+            <div>DEC {toCoordinate(selectedInterest.posY)}</div>
+            <div>D {toCoordinate(selectedInterest.posZ)}</div>
+          </div>
         </div>
 
-        {/* Resources */}
-        {selectedInterest.resources.length > 0 && (
-          <div className="mb-6">
-            <p className="text-xs tracking-widest uppercase text-white/30 mb-3">
-              Resources
+        {/* Interest name */}
+        <h2 className="text-xl font-light text-white mb-3">
+          {selectedInterest.name}
+        </h2>
+
+        {/* Radial diagram */}
+        <div className="flex items-start gap-4 mb-4">
+          <RadialDiagram dimensions={dimData} accentColor={accent} />
+          {selectedInterest.description && (
+            <p className="text-sm font-light leading-relaxed" style={{ color: "#e8e4df" }}>
+              {selectedInterest.description}
             </p>
-            <div className="space-y-2">
-              {selectedInterest.resources.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white/5 rounded-lg p-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider text-white/20 bg-white/5 px-1.5 py-0.5 rounded">
-                      {r.type}
-                    </span>
-                    <span className="text-sm text-white/70">{r.title}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="mx-5 border-t border-white/10" />
+
+      {/* Resources */}
+      {resources.length > 0 && (
+        <div className="p-5">
+          <h3 className="font-mono text-xs tracking-widest uppercase text-white/40 mb-3">
+            Resources
+          </h3>
+          <div className="space-y-3">
+            {resources.map((r, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">
+                  <span
+                    className="font-mono text-[10px] tracking-wider uppercase px-1.5 py-0.5 border"
+                    style={{ borderColor: accent, color: accent }}
+                  >
+                    {r.type}
+                  </span>
+                </span>
+                <div>
+                  <div className="text-sm" style={{ color: "#e8e4df" }}>
+                    {r.title}
                   </div>
                   {r.author && (
-                    <p className="text-xs text-white/30 mt-1">{r.author}</p>
+                    <div className="font-mono text-xs" style={{ color: "#b8b4af" }}>
+                      {r.author}
+                    </div>
                   )}
                   {r.why && (
-                    <p className="text-xs text-white/40 mt-1 italic">
+                    <div className="text-xs mt-1" style={{ color: "#b8b4af" }}>
                       {r.why}
-                    </p>
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Knowledge Tree */}
-        {loading && !knowledgeTree && (
-          <p className="text-sm text-white/30 font-light">
-            Exploring with taste...
-          </p>
-        )}
-        {knowledgeTree && (
-          <div>
-            <p className="text-xs tracking-widest uppercase text-white/30 mb-3">
-              Knowledge Tree
-            </p>
-            {DIMENSIONS.map(({ key, label }) => {
-              const dim = knowledgeTree[key] as KnowledgeDimension | undefined;
-              if (!dim) return null;
-              return (
-                <KnowledgeDimensionView
-                  key={key}
-                  title={label}
-                  dimension={dim}
-                />
-              );
-            })}
+      {/* Divider */}
+      <div className="mx-5 border-t border-white/10" />
+
+      {/* Knowledge Tree */}
+      <div className="p-5">
+        <h3 className="font-mono text-xs tracking-widest uppercase text-white/40 mb-3">
+          Knowledge Tree
+        </h3>
+        {loading ? (
+          <div className="font-mono text-xs text-white/30 animate-pulse">
+            Charting dimensions...
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {dimData.map((dim) => (
+              <KnowledgeDimensionView
+                key={dim.key}
+                dimension={dim.data}
+                label={dim.label}
+                accentColor={accent}
+              />
+            ))}
           </div>
         )}
       </div>

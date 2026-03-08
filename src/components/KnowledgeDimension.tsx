@@ -1,49 +1,64 @@
 "use client";
 
 import { useState } from "react";
-import type { KnowledgeDimension as KDType } from "@/lib/types";
+import { KnowledgeDimension } from "@/lib/types";
 
 interface Props {
-  title: string;
-  dimension: KDType;
+  dimension: KnowledgeDimension | null;
+  label: string;
+  accentColor: string;
 }
 
-export function KnowledgeDimensionView({ title, dimension }: Props) {
-  const [expanded, setExpanded] = useState(false);
+export function KnowledgeDimensionView({ dimension, label, accentColor }: Props) {
+  const [open, setOpen] = useState(false);
+
+  if (!dimension) return null;
 
   return (
-    <div className="border-b border-white/5 last:border-0">
+    <div>
       <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full py-3 flex justify-between items-center text-left group"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 py-2 text-left group"
       >
-        <span className="text-xs tracking-widest uppercase text-white/50 group-hover:text-white/80 transition-colors">
-          {title}
+        <span
+          className="w-2 h-2 rounded-full flex-shrink-0"
+          style={{ backgroundColor: accentColor, opacity: open ? 1 : 0.5 }}
+        />
+        <span className="font-mono text-xs tracking-widest uppercase text-white/50 group-hover:text-white/80 transition-colors">
+          {label}
         </span>
-        <span className="text-white/20 text-xs">{expanded ? "−" : "+"}</span>
+        <span className="font-mono text-xs text-white/20 ml-auto">
+          {dimension.items?.length || 0}
+        </span>
       </button>
-      {expanded && (
-        <div className="pb-4">
-          <p className="text-sm text-white/40 mb-3 leading-relaxed">
-            {dimension.summary}
-          </p>
-          <div className="space-y-3">
-            {dimension.items.map((item, i) => (
-              <div key={i} className="pl-3 border-l border-white/10">
-                <p className="text-sm text-white/80 font-medium">
+
+      {open && (
+        <div className="ml-4 pl-3 mb-2" style={{ borderLeft: `1px solid ${accentColor}40` }}>
+          {dimension.summary && (
+            <p className="text-xs mb-3 leading-relaxed" style={{ color: "#b8b4af" }}>
+              {dimension.summary}
+            </p>
+          )}
+          <div className="space-y-0">
+            {dimension.items?.map((item, i) => (
+              <div key={i} className="py-2 border-t border-white/5">
+                <div className="text-sm font-light" style={{ color: "#e8e4df" }}>
                   {item.name}
-                </p>
-                <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                  {item.description}
-                </p>
+                </div>
+                {item.description && (
+                  <div className="text-xs mt-1 leading-relaxed" style={{ color: "#b8b4af" }}>
+                    {item.description}
+                  </div>
+                )}
                 {item.works && item.works.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {item.works.map((work, j) => (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {item.works.map((w, j) => (
                       <span
                         key={j}
-                        className="text-xs bg-white/5 px-2 py-0.5 rounded-full text-white/30"
+                        className="font-mono text-[10px] px-1.5 py-0.5 border border-white/10"
+                        style={{ color: "#b8b4af" }}
                       >
-                        {work}
+                        {w}
                       </span>
                     ))}
                   </div>
