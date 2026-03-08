@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
 
@@ -16,27 +16,21 @@ function DiamondMarker({ position, color }: { position: THREE.Vector3; color: st
 }
 
 function DashedLine({ from, to, opacity }: { from: THREE.Vector3; to: THREE.Vector3; opacity: number }) {
-  const ref = useRef<THREE.Line>(null);
+  const lineObj = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+    const material = new THREE.LineDashedMaterial({
+      color: "#ffffff",
+      transparent: true,
+      opacity,
+      dashSize: 0.3,
+      gapSize: 0.15,
+    });
+    const line = new THREE.Line(geometry, material);
+    line.computeLineDistances();
+    return line;
+  }, [from, to, opacity]);
 
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.computeLineDistances();
-    }
-  }, [from, to]);
-
-  return (
-    <line ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={2}
-          array={new Float32Array([from.x, from.y, from.z, to.x, to.y, to.z])}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <lineDashedMaterial color="#ffffff" transparent opacity={opacity} dashSize={0.3} gapSize={0.15} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 export function ConstellationLines() {
