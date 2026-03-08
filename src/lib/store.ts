@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Interest, BridgeResult } from "./types";
+import { computeForceLayout } from "./forceLayout";
 
 interface EunoiaState {
   // Data
@@ -11,6 +12,8 @@ interface EunoiaState {
   bridgeMode: boolean;
   bridgeSelections: [string | null, string | null];
   bridgeResult: BridgeResult | null;
+  constellationMode: boolean;
+  hoveredInterestId: string | null;
   inputPanelOpen: boolean;
   sidePanelOpen: boolean;
   loading: boolean;
@@ -23,6 +26,8 @@ interface EunoiaState {
   toggleBridgeMode: () => void;
   setBridgeSelection: (id: string) => void;
   setBridgeResult: (result: BridgeResult | null) => void;
+  toggleConstellationMode: () => void;
+  setHoveredInterestId: (id: string | null) => void;
   toggleInputPanel: () => void;
   setSidePanelOpen: (open: boolean) => void;
   setLoading: (loading: boolean, message?: string) => void;
@@ -41,6 +46,8 @@ export const useStore = create<EunoiaState>((set, get) => ({
   bridgeMode: false,
   bridgeSelections: [null, null],
   bridgeResult: null,
+  constellationMode: false,
+  hoveredInterestId: null,
   inputPanelOpen: false,
   sidePanelOpen: false,
   loading: false,
@@ -65,6 +72,8 @@ export const useStore = create<EunoiaState>((set, get) => ({
       return { bridgeSelections: [s.bridgeSelections[0], id] };
     }),
   setBridgeResult: (result) => set({ bridgeResult: result }),
+  toggleConstellationMode: () => set((s) => ({ constellationMode: !s.constellationMode })),
+  setHoveredInterestId: (id) => set({ hoveredInterestId: id }),
   toggleInputPanel: () => set((s) => ({ inputPanelOpen: !s.inputPanelOpen })),
   setSidePanelOpen: (open) =>
     set({ sidePanelOpen: open, ...(!open ? { selectedInterest: null } : {}) }),
@@ -74,7 +83,15 @@ export const useStore = create<EunoiaState>((set, get) => ({
   fetchInterests: async () => {
     const res = await fetch("/api/interests");
     const data = await res.json();
-    set({ interests: data });
+    const positions = computeForceLayout(data);
+    const laid = data.map((interest: Interest) => {
+      const pos = positions.get(interest.id);
+      if (pos) {
+        return { ...interest, posX: pos.x, posY: pos.y, posZ: pos.z };
+      }
+      return interest;
+    });
+    set({ interests: laid });
   },
 
   addInput: async (content, type) => {
