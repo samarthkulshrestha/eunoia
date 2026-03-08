@@ -2,6 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useEffect } from "react";
 import { InterestCloud } from "./InterestCloud";
 import { BridgeZone } from "./BridgeZone";
@@ -47,11 +48,11 @@ function SceneContent() {
       <Stars
         radius={100}
         depth={50}
-        count={2000}
-        factor={4}
+        count={6000}
+        factor={5}
         saturation={0}
         fade
-        speed={0.5}
+        speed={1.0}
       />
       <OrbitControls
         enableDamping
@@ -67,6 +68,9 @@ function SceneContent() {
       {bridgeMode && interestA && interestB && bridgeResult && (
         <BridgeZone interestA={interestA} interestB={interestB} />
       )}
+      <EffectComposer>
+        <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.5} />
+      </EffectComposer>
     </>
   );
 }

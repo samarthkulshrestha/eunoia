@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { EB_Garamond } from "next/font/google";
+import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-const garamond = EB_Garamond({
+const playfair = Playfair_Display({
   variable: "--font-serif",
-  weight: ["400", "500", "600"],
   subsets: ["latin"],
 });
 
@@ -21,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${garamond.variable} antialiased`}
+        className={`${playfair.variable} antialiased`}
         style={{ fontFamily: "var(--font-serif), serif" }}
       >
         {children}

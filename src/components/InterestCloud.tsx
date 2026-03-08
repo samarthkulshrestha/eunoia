@@ -79,9 +79,21 @@ export function InterestCloud({ interest }: InterestCloudProps) {
     }
   };
 
-  const color = interest.color || "#6688ff";
-  const particleCount = interest.source === "ai-generated" ? 400 : 800;
-  const cloudOpacity = interest.source === "ai-generated" ? 0.5 : 0.8;
+  // Generate a distinct deterministic color based on the interest ID
+  const getDeterministicColor = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    // Return a vibrant HSL color for the galaxy base
+    return `hsl(${hue}, 85%, 60%)`;
+  };
+
+  // We'll override the default color to ensure vibrant differentiation between galaxies
+  const color = interest.color && interest.color !== "#6688ff" ? interest.color : getDeterministicColor(interest.id);
+  const particleCount = interest.source === "ai-generated" ? 4000 : 8000;
+  const cloudOpacity = interest.source === "ai-generated" ? 0.6 : 0.9;
 
   return (
     <group ref={groupRef} position={basePosition}>
@@ -89,7 +101,7 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         position={[0, 0, 0]}
         color={color}
         count={particleCount}
-        radius={1.5}
+        radius={2.0}
         opacity={cloudOpacity}
       />
       {/* Clickable invisible sphere for interaction */}
@@ -98,23 +110,29 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         onPointerEnter={() => setHoveredInterestId(interest.id)}
         onPointerLeave={() => setHoveredInterestId(null)}
       >
-        <sphereGeometry args={[1.8, 16, 16]} />
+        <sphereGeometry args={[2.2, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
       {/* Label */}
       <Html
         center
         distanceFactor={15}
+        zIndexRange={[40, 0]} // Keep labels below the UI overlays (SidePanel is z-[60])
         style={{
-          color: "white",
-          fontSize: "12px",
-          fontWeight: 300,
-          letterSpacing: "0.05em",
+          color: "rgba(255, 255, 255, 0.95)",
+          fontFamily: "var(--font-serif), serif",
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.15em",
           textTransform: "lowercase",
-          opacity: isSelected ? 1 : 0.7,
+          opacity: isSelected ? 1 : 0.85,
           pointerEvents: "none",
           whiteSpace: "nowrap",
-          textShadow: "0 0 10px rgba(0,0,0,0.8)",
+          textShadow: `
+            0px 2px 4px rgba(0,0,0,0.9),
+            0px 4px 12px rgba(0,0,0,1),
+            0px 0px 8px rgba(0,0,0,1)
+          `,
         }}
       >
         {interest.name}
@@ -122,7 +140,7 @@ export function InterestCloud({ interest }: InterestCloudProps) {
       {/* Selection glow */}
       {isSelected && (
         <mesh>
-          <sphereGeometry args={[2, 32, 32]} />
+          <sphereGeometry args={[2.5, 32, 32]} />
           <meshBasicMaterial
             color={color}
             transparent
