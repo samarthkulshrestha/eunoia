@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Text, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { CloudParticles } from "./CloudParticles";
 import { useStore } from "@/lib/store";
@@ -92,7 +92,13 @@ export function InterestCloud({ interest }: InterestCloudProps) {
 
   // We'll override the default color to ensure vibrant differentiation between galaxies
   const color = interest.color && interest.color !== "#6688ff" ? interest.color : getDeterministicColor(interest.id);
-  const particleCount = interest.source === "ai-generated" ? 4000 : 8000;
+
+  // Scale galaxy size by number of links — more connected = larger & denser
+  const linkCount = (interest.edgesFrom?.length || 0) + (interest.edgesTo?.length || 0);
+  const scaleFactor = 0.6 + Math.sqrt(linkCount) * 0.4; // 0.6x base, grows with sqrt of links
+  const baseCount = interest.source === "ai-generated" ? 4000 : 8000;
+  const particleCount = Math.round(baseCount * scaleFactor);
+  const radius = 2.0 * scaleFactor;
   const cloudOpacity = interest.source === "ai-generated" ? 0.6 : 0.9;
 
   return (
@@ -101,7 +107,7 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         position={[0, 0, 0]}
         color={color}
         count={particleCount}
-        radius={2.0}
+        radius={radius}
         opacity={cloudOpacity}
       />
       {/* Clickable invisible sphere for interaction */}
@@ -110,37 +116,46 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         onPointerEnter={() => setHoveredInterestId(interest.id)}
         onPointerLeave={() => setHoveredInterestId(null)}
       >
-        <sphereGeometry args={[2.2, 16, 16]} />
+        <sphereGeometry args={[radius * 1.1, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
-      {/* Label */}
-      <Html
-        center
-        distanceFactor={15}
-        zIndexRange={[40, 0]} // Keep labels below the UI overlays (SidePanel is z-[60])
-        style={{
-          color: "rgba(255, 255, 255, 0.95)",
-          fontFamily: "var(--font-serif), serif",
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.15em",
-          textTransform: "lowercase",
-          opacity: isSelected ? 1 : 0.85,
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-          textShadow: `
-            0px 2px 4px rgba(0,0,0,0.9),
-            0px 4px 12px rgba(0,0,0,1),
-            0px 0px 8px rgba(0,0,0,1)
-          `,
-        }}
+      {/* Leader line from galaxy edge to label */}
+      <Line
+        points={[
+          [0, -radius * 0.6, 0],
+          [0, -radius * 0.6 - 0.4, 0],
+          [radius * 0.5, -radius * 0.6 - 0.8, 0],
+        ]}
+        color="white"
+        lineWidth={0.5}
+        transparent
+        opacity={isSelected ? 0.5 : 0.25}
+      />
+      {/* Diamond tick at line end */}
+      <mesh
+        position={[0, -radius * 0.6, 0]}
+        rotation={[0, 0, Math.PI / 4]}
       >
-        {interest.name}
-      </Html>
+        <planeGeometry args={[0.08, 0.08]} />
+        <meshBasicMaterial color="white" transparent opacity={isSelected ? 0.6 : 0.3} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Label — SDF text rendered in WebGL */}
+      <Text
+        position={[radius * 0.5 + 0.1, -radius * 0.6 - 0.8, 0]}
+        fontSize={0.28}
+        color="white"
+        anchorX="left"
+        anchorY="middle"
+        font="/fonts/SpaceMono-Regular.ttf"
+        letterSpacing={0.12}
+        fillOpacity={isSelected ? 0.9 : 0.55}
+      >
+        {interest.name.toUpperCase()}
+      </Text>
       {/* Selection glow */}
       {isSelected && (
         <mesh>
-          <sphereGeometry args={[2.5, 32, 32]} />
+          <sphereGeometry args={[radius * 1.25, 32, 32]} />
           <meshBasicMaterial
             color={color}
             transparent
