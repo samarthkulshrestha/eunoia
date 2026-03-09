@@ -50,7 +50,9 @@ export function InputPanel() {
       style={{
         backgroundColor: "#0a0a0f",
         borderTop: `1px solid ${accent}`,
-        border: "1px solid rgba(255,255,255,0.1)",
+        borderRight: "1px solid rgba(255,255,255,0.1)",
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
+        borderLeft: "1px solid rgba(255,255,255,0.1)",
         backgroundImage: gridBg,
       }}
     >

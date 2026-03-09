@@ -1,26 +1,89 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Text, Line } from "@react-three/drei";
+import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { CloudParticles } from "./CloudParticles";
 import { useStore } from "@/lib/store";
 import type { Interest } from "@/lib/types";
+
+function StarLabel({ interest, radius, isSelected }: { interest: Interest; radius: number; isSelected: boolean }) {
+  const filterId = `glow-${interest.id.slice(0, 8)}`;
+
+  return (
+    <Html
+      position={[0, -radius * 0.4, 0]}
+      distanceFactor={8}
+      zIndexRange={[40, 0]}
+      style={{ pointerEvents: "none" }}
+    >
+      <div style={{ pointerEvents: "none" }}>
+        <svg
+          width="120" height="50"
+          viewBox="0 0 120 50"
+          style={{
+            overflow: "visible",
+            position: "absolute",
+            top: 0,
+            left: -4,
+            pointerEvents: "none",
+          }}
+        >
+          <defs>
+            <filter id={filterId}>
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          {/* Diamond tick at origin */}
+          <rect
+            x="-3" y="-3" width="6" height="6"
+            transform="rotate(45, 0, 0)"
+            fill="white"
+            filter={`url(#${filterId})`}
+          />
+          {/* Angled leader line */}
+          <polyline
+            points="0,0 0,22 40,40"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            filter={`url(#${filterId})`}
+          />
+        </svg>
+        <span style={{
+          position: "absolute",
+          top: 35,
+          left: 42,
+          color: "white",
+          textShadow: "0 0 6px rgba(255,255,255,0.6), 0 0 12px rgba(255,255,255,0.3)",
+          fontFamily: "var(--font-mono), monospace",
+          fontSize: "16px",
+          fontWeight: 700,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+        }}>
+          {interest.name}
+        </span>
+      </div>
+    </Html>
+  );
+}
 
 interface InterestCloudProps {
   interest: Interest;
 }
 
 export function InterestCloud({ interest }: InterestCloudProps) {
-  const groupRef = useRef<THREE.Group>(null);
   const {
     selectInterest,
     bridgeMode,
     setBridgeSelection,
     bridgeSelections,
-    bridgeResult,
-    interests,
     setHoveredInterestId,
   } = useStore();
 
@@ -33,42 +96,6 @@ export function InterestCloud({ interest }: InterestCloudProps) {
     interest.posY,
     interest.posZ,
   ];
-
-  useFrame(() => {
-    if (!groupRef.current) return;
-
-    if (
-      bridgeMode &&
-      isSelected &&
-      bridgeSelections[0] &&
-      bridgeSelections[1] &&
-      bridgeResult
-    ) {
-      const partnerId =
-        bridgeSelections[0] === interest.id
-          ? bridgeSelections[1]
-          : bridgeSelections[0];
-      const partner = interests.find((i) => i.id === partnerId);
-      if (!partner) return;
-
-      const midX = (interest.posX + partner.posX) / 2;
-      const midY = (interest.posY + partner.posY) / 2;
-      const midZ = (interest.posZ + partner.posZ) / 2;
-      const targetX = interest.posX + (midX - interest.posX) * 0.3;
-      const targetY = interest.posY + (midY - interest.posY) * 0.3;
-      const targetZ = interest.posZ + (midZ - interest.posZ) * 0.3;
-
-      groupRef.current.position.lerp(
-        new THREE.Vector3(targetX, targetY, targetZ),
-        0.02
-      );
-    } else {
-      groupRef.current.position.lerp(
-        new THREE.Vector3(...basePosition),
-        0.05
-      );
-    }
-  });
 
   const handleClick = (e: any) => {
     e.stopPropagation();
@@ -102,7 +129,7 @@ export function InterestCloud({ interest }: InterestCloudProps) {
   const cloudOpacity = interest.source === "ai-generated" ? 0.6 : 0.9;
 
   return (
-    <group ref={groupRef} position={basePosition}>
+    <group position={basePosition}>
       <CloudParticles
         position={[0, 0, 0]}
         color={color}
@@ -119,39 +146,8 @@ export function InterestCloud({ interest }: InterestCloudProps) {
         <sphereGeometry args={[radius * 1.1, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
-      {/* Leader line from galaxy edge to label */}
-      <Line
-        points={[
-          [0, -radius * 0.6, 0],
-          [0, -radius * 0.6 - 0.4, 0],
-          [radius * 0.5, -radius * 0.6 - 0.8, 0],
-        ]}
-        color="white"
-        lineWidth={0.5}
-        transparent
-        opacity={isSelected ? 0.5 : 0.25}
-      />
-      {/* Diamond tick at line end */}
-      <mesh
-        position={[0, -radius * 0.6, 0]}
-        rotation={[0, 0, Math.PI / 4]}
-      >
-        <planeGeometry args={[0.08, 0.08]} />
-        <meshBasicMaterial color="white" transparent opacity={isSelected ? 0.6 : 0.3} side={THREE.DoubleSide} />
-      </mesh>
-      {/* Label — SDF text rendered in WebGL */}
-      <Text
-        position={[radius * 0.5 + 0.1, -radius * 0.6 - 0.8, 0]}
-        fontSize={0.28}
-        color="white"
-        anchorX="left"
-        anchorY="middle"
-        font="/fonts/SpaceMono-Regular.ttf"
-        letterSpacing={0.12}
-        fillOpacity={isSelected ? 0.9 : 0.55}
-      >
-        {interest.name.toUpperCase()}
-      </Text>
+      {/* Label with SVG leader line — adaptive size */}
+      <StarLabel interest={interest} radius={radius} isSelected={isSelected} />
       {/* Selection glow */}
       {isSelected && (
         <mesh>

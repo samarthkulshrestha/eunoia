@@ -5,7 +5,6 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useEffect } from "react";
 import { InterestCloud } from "./InterestCloud";
-import { BridgeZone } from "./BridgeZone";
 import { ConstellationLines } from "./ConstellationLines";
 import { useStore } from "@/lib/store";
 
@@ -16,7 +15,6 @@ function SceneContent() {
     bridgeMode,
     bridgeSelections,
     bridgeInterests,
-    bridgeResult,
   } = useStore();
 
   useEffect(() => {
@@ -28,19 +26,6 @@ function SceneContent() {
       bridgeInterests(bridgeSelections[0], bridgeSelections[1]);
     }
   }, [bridgeMode, bridgeSelections, bridgeInterests]);
-
-  const rootInterests = interests.filter(
-    (i) => i.depth === 0 || i.source === "manual"
-  );
-
-  const interestA =
-    bridgeSelections[0]
-      ? interests.find((i) => i.id === bridgeSelections[0]) || null
-      : null;
-  const interestB =
-    bridgeSelections[1]
-      ? interests.find((i) => i.id === bridgeSelections[1]) || null
-      : null;
 
   return (
     <>
@@ -61,13 +46,10 @@ function SceneContent() {
         maxDistance={50}
         enablePan
       />
-      {rootInterests.map((interest) => (
+      {interests.map((interest) => (
         <InterestCloud key={interest.id} interest={interest} />
       ))}
       <ConstellationLines />
-      {bridgeMode && interestA && interestB && bridgeResult && (
-        <BridgeZone interestA={interestA} interestB={interestB} />
-      )}
       <EffectComposer>
         <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.5} />
       </EffectComposer>

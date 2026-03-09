@@ -1,36 +1,67 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
 
 const DIAMOND_SIZE = 0.15;
 
-function DiamondMarker({ position, color }: { position: THREE.Vector3; color: string }) {
+function DiamondMarker({ position, opacity }: { position: THREE.Vector3; opacity: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+
+  // Billboard: always face camera
+  useFrame(({ camera }) => {
+    if (ref.current) {
+      ref.current.quaternion.copy(camera.quaternion);
+    }
+  });
+
   return (
-    <mesh position={position} rotation={[0, 0, Math.PI / 4]}>
+    <mesh ref={ref} position={position} rotation={[0, 0, Math.PI / 4]}>
       <planeGeometry args={[DIAMOND_SIZE, DIAMOND_SIZE]} />
-      <meshBasicMaterial color={color} transparent opacity={0.6} side={THREE.DoubleSide} />
+      <meshBasicMaterial color="white" transparent opacity={opacity} side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-function DashedLine({ from, to, opacity }: { from: THREE.Vector3; to: THREE.Vector3; opacity: number }) {
-  const lineObj = useMemo(() => {
-    const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
-    const material = new THREE.LineDashedMaterial({
-      color: "#ffffff",
-      transparent: true,
-      opacity,
-      dashSize: 0.3,
-      gapSize: 0.15,
-    });
-    const line = new THREE.Line(geometry, material);
-    line.computeLineDistances();
-    return line;
-  }, [from, to, opacity]);
+function DashedSegment({ from, to, opacity }: { from: THREE.Vector3; to: THREE.Vector3; opacity: number }) {
+  // Build a series of small cylinders to simulate a dashed line with volume
+  const segments = useMemo(() => {
+    const dir = new THREE.Vector3().subVectors(to, from);
+    const totalLen = dir.length();
+    const dashLen = 0.3;
+    const gapLen = 0.15;
+    const cycleLen = dashLen + gapLen;
+    const unitDir = dir.clone().normalize();
 
-  return <primitive object={lineObj} />;
+    const result: { pos: THREE.Vector3; length: number; quaternion: THREE.Quaternion }[] = [];
+
+    // Compute orientation quaternion: cylinder default axis is Y, we need it along dir
+    const quat = new THREE.Quaternion();
+    quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), unitDir);
+
+    let dist = 0;
+    while (dist < totalLen) {
+      const segLen = Math.min(dashLen, totalLen - dist);
+      const center = from.clone().add(unitDir.clone().multiplyScalar(dist + segLen / 2));
+      result.push({ pos: center, length: segLen, quaternion: quat });
+      dist += cycleLen;
+    }
+
+    return result;
+  }, [from, to]);
+
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <mesh key={i} position={seg.pos} quaternion={seg.quaternion}>
+          <cylinderGeometry args={[0.015, 0.015, seg.length, 4]} />
+          <meshBasicMaterial color="white" transparent opacity={opacity} />
+        </mesh>
+      ))}
+    </>
+  );
 }
 
 export function ConstellationLines() {
@@ -86,13 +117,13 @@ export function ConstellationLines() {
       {lines.map((line) => {
         const isHighlighted =
           !hoveredInterestId || hoveredInterestId === line.fromId || hoveredInterestId === line.toId;
-        const opacity = isHighlighted ? 0.4 : 0.08;
+        const opacity = isHighlighted ? 0.5 : 0.08;
 
         return (
           <group key={line.key}>
-            <DashedLine from={line.from} to={line.to} opacity={opacity} />
-            <DiamondMarker position={line.from} color="#ffffff" />
-            <DiamondMarker position={line.to} color="#ffffff" />
+            <DashedSegment from={line.from} to={line.to} opacity={opacity} />
+            <DiamondMarker position={line.from} opacity={opacity} />
+            <DiamondMarker position={line.to} opacity={opacity} />
           </group>
         );
       })}

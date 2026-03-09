@@ -23,7 +23,10 @@ export function UIOverlay() {
     <div className="fixed inset-0 pointer-events-none z-50">
       {/* Title block — top left */}
       <div className="absolute top-5 left-5 pointer-events-auto">
-        <h1 className="text-lg font-light tracking-[0.3em] uppercase text-white">
+        <h1
+          className="font-mono text-lg tracking-[0.3em] uppercase text-white"
+          style={{ textShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.15)" }}
+        >
           eunoia
         </h1>
         <div className="mt-1.5 flex items-center gap-0">
