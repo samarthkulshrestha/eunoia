@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Eunoia
+
+*See your beautiful thinking.*
+
+Eunoia is an AI-powered knowledge visualization tool that transforms your
+intellectual interests into an interactive 3D space. Input books, videos,
+articles, or raw ideas -- Claude AI extracts the core domains, maps connections
+between them, and renders everything as explorable constellation-like particle
+clouds.
+
+## Features
+
+- **Input anything** -- books, YouTube videos, music, articles, PDFs, or
+  freeform text. The AI parses your input and extracts intellectual domains.
+- **3D knowledge space** -- interests are rendered as particle clouds positioned
+  by a force-directed layout algorithm, with constellation lines showing
+  connections.
+- **Deep exploration** -- click any interest to generate a six-dimensional
+  knowledge tree: foundations, taxonomy, key thinkers, cultural impact, adjacent
+  surprises, and controversies.
+- **Intellectual bridges** -- select two interests to discover substantive
+  stepping-stone connections between seemingly unrelated domains.
+- **Opinionated recommendations** -- curated resources (books, papers, videos,
+  essays) with specific reasons to engage with each one.
+
+## Tech Stack
+
+- **Frontend**: Next.js, React, Three.js (via @react-three/fiber + drei),
+  Tailwind CSS
+- **State**: Zustand
+- **Backend**: Next.js API routes, Prisma ORM, PostgreSQL
+- **AI**: Anthropic Claude (via @anthropic-ai/sdk)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js
+- PostgreSQL
+- An [Anthropic API key](https://console.anthropic.com/)
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/samarthkulshrestha/be.git
+cd be
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env` file:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/eunoia"
+ANTHROPIC_API_KEY="sk-ant-..."
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set up the database and start the dev server:
 
-## Learn More
+```bash
+npx prisma migrate dev
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+  app/
+    api/
+      interests/    # interest retrieval + knowledge tree generation
+      input/        # user input parsing
+      bridge/       # intellectual bridge finding
+    page.tsx        # main page (3D scene + UI overlay)
+  components/       # Scene, InterestCloud, SidePanel, InputPanel, etc.
+  lib/
+    ai.ts           # Claude API integration
+    prompts.ts      # system prompts for AI tasks
+    store.ts        # Zustand state management
+    forceLayout.ts  # force-directed graph layout
+    db.ts           # Prisma client
+    types.ts        # TypeScript interfaces
+prisma/
+  schema.prisma     # database schema (Interest, Edge, Resource, InputItem)
+```
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All rights reserved.
